@@ -34,23 +34,53 @@ class Subscene:
     def __str__(self):
       return self.title
 
+    def fromRows(rows):
+      subtitles = []
+
+      for row in rows:
+        if row.td.a is None:
+          continue
+
+        subtitle = Subscene.Subtitle.fromRow(row)
+        subtitles.append(subtitle)
+
+      return subtitles
+
     def fromRow(row):
-      title = row.find('td', 'a1').a.find_all('span')[1].text
+      try:
+        title = row.find('td', 'a1').a.find_all('span')[1].text
+      except:
+        title = ''
       title = re.sub(r'^\s+', '', title)
       title = re.sub(r'\s+$', '', title)
 
-      page = Subscene.SITE_DOMAIN + row.find('td', 'a1').a.get('href')
+      try:
+        page = Subscene.SITE_DOMAIN + row.find('td', 'a1').a.get('href')
+      except:
+        page = ''
 
-      language = row.find('td', 'a1').a.find_all('span')[0].text
+      try:
+        language = row.find('td', 'a1').a.find_all('span')[0].text
+      except:
+        language = ''
       language = re.sub(r'\s+', '', language)
 
       owner = {}
-      owner_username = row.find('td', 'a5').a.text
+      try:
+        owner_username = row.find('td', 'a5').a.text
+      except:
+        owner_username = ''
       owner['username'] = re.sub(r'\s+', '', owner_username)
-      owner_page = row.find('td', 'a5').a.get('href')
-      owner['page'] = Subscene.SITE_DOMAIN + owner_page
+      try:
+        owner_page = row.find('td', 'a5').a.get('href')
+        owner['page'] = Subscene.SITE_DOMAIN + owner_page
+      except:
+        owner['page'] = ''
 
-      comment = row.find('td', 'a6').div.text
+      try:
+        comment = row.find('td', 'a6').div.text
+      except:
+        comment = ''
       comment = re.sub(r'^\s+', '', comment)
       comment = re.sub(r'\s+$', '', comment)
 
@@ -77,7 +107,7 @@ class Subscene:
     def fromURL(url):
       soup = Subscene._Subscene__get_soup(Subscene, url)
 
-      content = soup.find('div', 'subtitles byFilm')
+      content = soup.find('div', 'subtitles')
       header = content.find('div', 'box clearfix')
 
       cover = header.find('div', 'poster').img.get('src')
@@ -91,14 +121,8 @@ class Subscene:
       year = header.find('div', 'header').ul.li.text
       year = int(re.findall(r'[0-9]+', year)[0])
 
-      subtitles = []
       rows = content.find('table').tbody.find_all('tr')
-      for row in rows:
-        if row.td.a is None:
-          continue
-
-        subtitle = Subscene.Subtitle.fromRow(row)
-        subtitles.append(subtitle)
+      subtitles = Subscene.Subtitle.fromRows(rows)
 
       film = Subscene.Film(title, year, imdb, cover, subtitles)
       return film
@@ -107,6 +131,13 @@ class Subscene:
     url = "{}/subtitles/title?q={}&l=".format(Subscene.SITE_DOMAIN, term)
 
     soup = self.__get_soup(url)
+
+    if self.__has_table(soup):
+      rows = soup.find('table').tbody.find_all('tr')
+      subtitles = Subscene.Subtitle.fromRows(rows)
+
+      film = Subscene.Film(term, 0, '', '', subtitles)
+      return film
 
     if self.__section_exist(soup, Subscene.SEARCH_TYPE_EXACT):
       return self.__get_first(soup, Subscene.SEARCH_TYPE_EXACT)
@@ -139,6 +170,9 @@ class Subscene:
     soup = BeautifulSoup(html_doc, 'html.parser')
 
     return soup
+
+  def __has_table(self, soup):
+    return 'Subtitle search by' in str(soup)
 
   def __section_exist(self, soup, section):
     tag_text = Subscene.__SEARCH_TYPE_LOOKUP[section]
