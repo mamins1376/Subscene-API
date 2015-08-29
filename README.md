@@ -1,2 +1,2 @@
 # Subscene-API
-Python API for Subscene subtitle service
+Unofficial Python API for Subscene subtitle service
