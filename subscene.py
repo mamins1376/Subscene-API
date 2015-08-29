@@ -9,13 +9,15 @@ class Subscene:
   SITE_DOMAIN = 'http://bbsub.ir'
 
   SEARCH_TYPE_EXACT = 0
-  SEARCH_TYPE_POPULAR = 1
-  SEARCH_TYPE_CLOSE = 2
+  SEARCH_TYPE_TVSERIE = 1
+  SEARCH_TYPE_POPULAR = 2
+  SEARCH_TYPE_CLOSE = 3
 
   __SEARCH_TYPE_LOOKUP = {
-      SEARCH_TYPE_EXACT: 'exact',
-      SEARCH_TYPE_POPULAR: 'popular',
-      SEARCH_TYPE_CLOSE: 'close'
+      SEARCH_TYPE_EXACT: 'Exact',
+      SEARCH_TYPE_TVSERIE: 'TV-Series',
+      SEARCH_TYPE_POPULAR: 'Popular',
+      SEARCH_TYPE_CLOSE: 'Close'
   }
 
   class Subtitle:
@@ -56,7 +58,7 @@ class Subscene:
       return subtitle
 
     def getZipLink(self):
-      soup = Subscene._Subscene__get_soup(self.page)
+      soup = Subscene._Subscene__get_soup(Subscene, self.page)
       self.zipped = Subscene.SITE_DOMAIN + \
           soup.find('div', 'download').a.get('href')
 
@@ -112,6 +114,12 @@ class Subscene:
     if search_type == Subscene.SEARCH_TYPE_EXACT:
       return None
 
+    if self.__section_exist(soup, Subscene.SEARCH_TYPE_TVSERIE):
+      return self.__get_first(soup, Subscene.SEARCH_TYPE_TVSERIE)
+
+    if search_type == Subscene.SEARCH_TYPE_TVSERIE:
+      return None
+
     if self.__section_exist(soup, Subscene.SEARCH_TYPE_POPULAR):
       return self.__get_first(soup, Subscene.SEARCH_TYPE_POPULAR)
 
@@ -121,8 +129,7 @@ class Subscene:
     if self.__section_exist(soup, Subscene.SEARCH_TYPE_CLOSE):
       return self.__get_first(soup, Subscene.SEARCH_TYPE_CLOSE)
 
-    if search_type >= Subscene.SEARCH_TYPE_CLOSE:
-      return None
+    return None
 
   def __get_soup(self, url):
     url = re.sub('\s', '+', url)
@@ -134,14 +141,20 @@ class Subscene:
     return soup
 
   def __section_exist(self, soup, section):
-    tag_class = Subscene.__SEARCH_TYPE_LOOKUP[section]
-    tag = soup.find('h2', tag_class)
-
-    return not tag is None
+    tag_text = Subscene.__SEARCH_TYPE_LOOKUP[section]
+    headers = soup.find('div', 'search-result').find_all('h2')
+    for header in headers:
+      if tag_text in header.text:
+        return True
+    return False
 
   def __get_first(self, soup, section):
-    tag_class = Subscene.__SEARCH_TYPE_LOOKUP[section]
-    tag = soup.find('h2', tag_class)
+    tag_text = Subscene.__SEARCH_TYPE_LOOKUP[section]
+    headers = soup.find('div', 'search-result').find_all('h2')
+    for header in headers:
+      if tag_text in header.text:
+        tag = header
+        break
 
     film_url = tag.findNext('ul').find('li').div.a.get('href')
     film_url = Subscene.SITE_DOMAIN + film_url
