@@ -142,7 +142,12 @@ class Subscene:
 
   def __section_exist(self, soup, section):
     tag_text = Subscene.__SEARCH_TYPE_LOOKUP[section]
-    headers = soup.find('div', 'search-result').find_all('h2')
+
+    try:
+      headers = soup.find('div', 'search-result').find_all('h2')
+    except AttributeError:
+      return False
+
     for header in headers:
       if tag_text in header.text:
         return True
