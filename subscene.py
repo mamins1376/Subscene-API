@@ -51,8 +51,7 @@ class Subscene:
         title = row.find('td', 'a1').a.find_all('span')[1].text
       except:
         title = ''
-      title = re.sub(r'^\s+', '', title)
-      title = re.sub(r'\s+$', '', title)
+      title = title.strip()
 
       try:
         page = Subscene.SITE_DOMAIN + row.find('td', 'a1').a.get('href')
@@ -63,17 +62,17 @@ class Subscene:
         language = row.find('td', 'a1').a.find_all('span')[0].text
       except:
         language = ''
-      language = re.sub(r'\s+', '', language)
+      language = language.strip()
 
       owner = {}
       try:
         owner_username = row.find('td', 'a5').a.text
       except:
         owner_username = ''
-      owner['username'] = re.sub(r'\s+', '', owner_username)
+      owner['username'] = owner_username.strip()
       try:
         owner_page = row.find('td', 'a5').a.get('href')
-        owner['page'] = Subscene.SITE_DOMAIN + owner_page
+        owner['page'] = Subscene.SITE_DOMAIN + owner_page.strip()
       except:
         owner['page'] = ''
 
@@ -81,8 +80,7 @@ class Subscene:
         comment = row.find('td', 'a6').div.text
       except:
         comment = ''
-      comment = re.sub(r'^\s+', '', comment)
-      comment = re.sub(r'\s+$', '', comment)
+      comment = comment.strip()
 
       subtitle = Subscene.Subtitle(title, page, language, owner, comment)
       return subtitle
@@ -113,8 +111,7 @@ class Subscene:
       cover = header.find('div', 'poster').img.get('src')
 
       title = header.find('div', 'header').h2.text
-      title = re.sub(r'^\s+', '', title[:-12])
-      title = re.sub(r'\s+$', '', title)
+      title = title[:-12].strip()
 
       imdb = header.find('div', 'header').h2.find('a', 'imdb').get('href')
 
