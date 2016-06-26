@@ -13,17 +13,17 @@ setup for Subscene
 from setuptools import setup, find_packages
 
 description = readme = 'python wrapper for Subscene subtitle database.'
+requirements = []
 try:
   with open('README','r') as f:
     readme = f.read()
+  with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
 except Exception:
   pass
 
-with open('requirements.txt') as f:
-  requirements = f.read().splitlines()
-
 setup(
-  name='subscene',
+  name='subscene-api',
   version='1.0.0',
   description=description,
   long_description=readme,
@@ -33,7 +33,7 @@ setup(
   license='GNU General Public License v3 or later',
   keywords = 'subscene api wrapper python3',
   install_requires=requirements,
-  packages=find_packages(),
+  packages=['subscene'],
   classifiers = [
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
     'Topic :: Software Development',
