@@ -21,7 +21,7 @@ import re
 
 class Subscene:
 
-  SITE_DOMAIN = 'http://bbsub.ir'
+  SITE_DOMAIN = 'http://subscene.com'
 
   SEARCH_TYPE_EXACT = 0
   SEARCH_TYPE_TVSERIE = 1
