@@ -3,8 +3,16 @@ Unofficial Python API for Subscene subtitle database.
 
 ## Usage
 
+1. Clone the repo:
+
+    `$ git clone https://github.com/mamins1376/Subscene-API subscene`
+
+2. Install dependencies:
+
+    `$ cd subscene && sudo pip install -r requirements.txt`
+
+3. Fire it:
 ```
-$ git clone https://github.com/mamins1376/Subscene-API subscene
 $ python3
 >>> from subscene import Subscene
 >>> subscene = Subscene()
