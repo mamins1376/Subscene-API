@@ -21,7 +21,7 @@ import re
 
 class Subscene:
 
-  SITE_DOMAIN = 'http://subscene.com'
+  SITE_DOMAIN = 'https://subscene.com'
 
   SEARCH_TYPE_EXACT = 0
   SEARCH_TYPE_TVSERIE = 1
@@ -105,7 +105,7 @@ class Subscene:
       return subtitle
 
     def get_zip_link(self):
-      
+
       soup = Subscene._Subscene__get_soup(Subscene, self.page)
 
       self.zipped = Subscene.SITE_DOMAIN + \
@@ -151,9 +151,9 @@ class Subscene:
 
       return film
 
-  def search(self, term, search_type=SEARCH_TYPE_CLOSE):
+  def search(self, term, language='', search_type=SEARCH_TYPE_CLOSE):
 
-    url = "{}/subtitles/title?q={}&l=".format(Subscene.SITE_DOMAIN, term)
+    url = "{}/subtitles/title?q={}&l={}".format(Subscene.SITE_DOMAIN, term, language)
 
     soup = self.__get_soup(url)
 
