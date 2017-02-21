@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-# vim: fenc=utf-8 ts=2 et sw=2 sts=2
+# vim: fenc=utf-8 ts=4 et sw=4 sts=4
 
 # This file is part of Subscene-API.
 #
@@ -21,227 +21,185 @@
 Python wrapper for Subscene subtitle database.
 
 since Subscene doesn't provide an official API, I wrote
-this script that does the job by parsing the website's pages.
+this script that does the job by parsing the website"s pages.
 """
 
-from bs4 import BeautifulSoup
-import urllib.request
+# imports
 import re
+import enum
+from contextlib import suppress
+from urllib.request import Request, urlopen
+from bs4 import BeautifulSoup
 
-class Subscene:
-
-  SITE_DOMAIN = 'https://subscene.com'
-
-  SEARCH_TYPE_EXACT = 0
-  SEARCH_TYPE_TVSERIE = 1
-  SEARCH_TYPE_POPULAR = 2
-  SEARCH_TYPE_CLOSE = 3
-
-  __SEARCH_TYPE_LOOKUP = {
-      SEARCH_TYPE_EXACT: 'Exact',
-      SEARCH_TYPE_TVSERIE: 'TV-Series',
-      SEARCH_TYPE_POPULAR: 'Popular',
-      SEARCH_TYPE_CLOSE: 'Close'
-  }
-
-  class Subtitle:
-
-    def __init__(self, title, page, language, owner, comment, ziplink=False):
-
-      self.title = str(title)
-      self.page = str(page)
-      self.language = str(language)
-      self.owner = dict(owner)
-      self.comment = str(comment)
-
-      if ziplink:
-        self.get_zip_link()
-
-    def __str__(self):
-      return self.title
-
-    def from_rows(rows):
-
-      subtitles = []
-
-      for row in rows:
-        if row.td.a is None:
-          continue
-
-        subtitle = Subscene.Subtitle.from_row(row)
-        subtitles.append(subtitle)
-
-      return subtitles
-
-    def from_row(row):
-
-      try:
-        title = row.find('td', 'a1').a.find_all('span')[1].text
-      except:
-        title = ''
-      title = title.strip()
-
-      try:
-        page = Subscene.SITE_DOMAIN + row.find('td', 'a1').a.get('href')
-      except:
-        page = ''
-
-      try:
-        language = row.find('td', 'a1').a.find_all('span')[0].text
-      except:
-        language = ''
-      language = language.strip()
-
-      owner = {}
-      try:
-        owner_username = row.find('td', 'a5').a.text
-      except:
-        owner_username = ''
-      owner['username'] = owner_username.strip()
-      try:
-        owner_page = row.find('td', 'a5').a.get('href')
-        owner['page'] = Subscene.SITE_DOMAIN + owner_page.strip()
-      except:
-        owner['page'] = ''
-
-      try:
-        comment = row.find('td', 'a6').div.text
-      except:
-        comment = ''
-      comment = comment.strip()
-
-      subtitle = Subscene.Subtitle(title, page, language, owner, comment)
-      return subtitle
-
-    def get_zip_link(self):
-
-      soup = Subscene._Subscene__get_soup(Subscene, self.page)
-
-      self.zipped = Subscene.SITE_DOMAIN + \
-          soup.find('div', 'download').a.get('href')
-
-      return self.zipped
-
-
-  class Film:
-
-    def __init__(self, title, year, imdb, cover, subtitles):
-
-      self.title = str(title)
-      self.year = int(year)
-      self.imdb = str(imdb)
-      self.cover = str(cover)
-      self.subtitles = tuple(subtitles)
-
-    def __str__(self):
-      return self.title
-
-    def from_url(url):
-
-      soup = Subscene._Subscene__get_soup(Subscene, url)
-
-      content = soup.find('div', 'subtitles')
-      header = content.find('div', 'box clearfix')
-
-      cover = header.find('div', 'poster').img.get('src')
-
-      title = header.find('div', 'header').h2.text
-      title = title[:-12].strip()
-
-      imdb = header.find('div', 'header').h2.find('a', 'imdb').get('href')
-
-      year = header.find('div', 'header').ul.li.text
-      year = int(re.findall(r'[0-9]+', year)[0])
-
-      rows = content.find('table').tbody.find_all('tr')
-      subtitles = Subscene.Subtitle.from_rows(rows)
-
-      film = Subscene.Film(title, year, imdb, cover, subtitles)
-
-      return film
-
-  def search(self, term, language='', search_type=SEARCH_TYPE_CLOSE):
-
-    url = "{}/subtitles/title?q={}&l={}".format(Subscene.SITE_DOMAIN, term, language)
-
-    soup = self.__get_soup(url)
-
-    if self.__has_table(soup):
-      rows = soup.find('table').tbody.find_all('tr')
-      subtitles = Subscene.Subtitle.from_rows(rows)
-
-      film = Subscene.Film(term, 0, '', '', subtitles)
-      return film
-
-    if self.__section_exist(soup, Subscene.SEARCH_TYPE_EXACT):
-      return self.__get_first(soup, Subscene.SEARCH_TYPE_EXACT)
-
-    if search_type == Subscene.SEARCH_TYPE_EXACT:
-      return None
-
-    if self.__section_exist(soup, Subscene.SEARCH_TYPE_TVSERIE):
-      return self.__get_first(soup, Subscene.SEARCH_TYPE_TVSERIE)
-
-    if search_type == Subscene.SEARCH_TYPE_TVSERIE:
-      return None
-
-    if self.__section_exist(soup, Subscene.SEARCH_TYPE_POPULAR):
-      return self.__get_first(soup, Subscene.SEARCH_TYPE_POPULAR)
-
-    if search_type == Subscene.SEARCH_TYPE_POPULAR:
-      return None
-
-    if self.__section_exist(soup, Subscene.SEARCH_TYPE_CLOSE):
-      return self.__get_first(soup, Subscene.SEARCH_TYPE_CLOSE)
-
-    return None
-
-  def __get_soup(self, url):
-
-    url = re.sub('\s', '+', url)
-
-    req = urllib.request.Request(
-        url,
-        data=None,
-        headers={
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
+# constants
+HEADERS = {
+        "User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
         }
-    )
+SITE_DOMAIN = "https://subscene.com"
 
-    html_doc = urllib.request.urlopen(req).read()
-    html_doc = html_doc.decode("utf-8")
-    soup = BeautifulSoup(html_doc, 'html.parser')
+# utils
+def soup_for(url):
+    url = re.sub("\s", "+", url)
+    r = Request(url, data=None, headers=HEADERS)
+    html = urlopen(r).read().decode("utf-8")
+    return BeautifulSoup(html, "html.parser")
 
-    return soup
+class AttrDict():
+    to_dict = lambda self: {k:getattr(self, k) for k in self._attrs}
 
-  def __has_table(self, soup):
-    return 'Subtitle search by' in str(soup)
+    def __init__(self, *attrs):
+        self._attrs = attrs
 
-  def __section_exist(self, soup, section):
+        for attr in attrs:
+            setattr(self, attr, "")
 
-    tag_text = Subscene.__SEARCH_TYPE_LOOKUP[section]
+# models
+@enum.unique
+class SearchTypes(enum.Enum):
+    Exact = 1
+    TvSerie = 2
+    Popular = 3
+    Close = 4
+
+SectionsParts = {
+        SearchTypes.Exact: "Exact",
+        SearchTypes.TvSerie: "TV-Series",
+        SearchTypes.Popular: "Popular",
+        SearchTypes.Close: "Close"
+}
+
+class Subtitle:
+    def __init__(self, title, url, language, owner_username, owner_url, description):
+        self.title = title
+        self.url = url
+        self.language = language
+        self.owner_username = owner_username
+        self.owner_url = owner_url
+        self.description = description
+
+        self._zipped_url = None
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def from_rows(cls, rows):
+        subtitles = []
+
+        for row in rows:
+            if row.td.a is not None:
+                subtitles.append(cls.from_row(row))
+
+        return subtitles
+
+    @classmethod
+    def from_row(cls, row):
+        attrs = AttrDict("title", "url", "language", "owner_username", "owner_url", "description")
+
+        with suppress(Exception):
+            attrs.title = row.find("td", "a1").a.find_all("span")[1].text.strip()
+
+        with suppress(Exception):
+            attrs.url = SITE_DOMAIN + row.find("td", "a1").a.get("href")
+
+        with suppress(Exception):
+            attrs.language = row.find("td", "a1").a.find_all("span")[0].text.strip()
+
+        with suppress(Exception):
+            attrs.owner_username = row.find("td", "a5").a.text.strip()
+
+        with suppress(Exception):
+            attrs.owner_page = SITE_DOMAIN + row.find("td", "a5").a.get("href").strip()
+
+        with suppress(Exception):
+            attrs.description = row.find("td", "a6").div.text.strip()
+
+        return cls(**attrs.to_dict())
+
+    @property
+    def zipped_url(self):
+        if self._zipped_url:
+            return self._zipped_url
+
+        soup = soup_for(self.url)
+        self._zipped_url = SITE_DOMAIN + soup.find("div", "download").a.get("href")
+        return self._zipped_url
+
+class Film:
+    def __init__(self, title, year=None, imdb=None, cover=None, subtitles=None):
+        self.title = title
+        self.year = year
+        self.imdb = imdb
+        self.cover = cover
+        self.subtitles = subtitles
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def from_url(cls, url):
+        soup = soup_for(url)
+
+        content = soup.find("div", "subtitles")
+        header = content.find("div", "box clearfix")
+
+        cover = header.find("div", "poster").img.get("src")
+
+        title = header.find("div", "header").h2.text[:-12].strip()
+
+        imdb = header.find("div", "header").h2.find("a", "imdb").get("href")
+
+        year = header.find("div", "header").ul.li.text
+        year = int(re.findall(r"[0-9]+", year)[0])
+
+        rows = content.find("table").tbody.find_all("tr")
+        subtitles = Subtitle.from_rows(rows)
+
+        return cls(title, year, imdb, cover, subtitles)
+
+# functions
+def section_exists(soup, section):
+    tag_part = SectionsParts[section]
 
     try:
-      headers = soup.find('div', 'search-result').find_all('h2')
+        headers = soup.find("div", "search-result").find_all("h2")
     except AttributeError:
-      return False
+        return False
 
     for header in headers:
-      if tag_text in header.text:
-        return True
+        if tag_part in header.text:
+            return True
+
     return False
 
-  def __get_first(self, soup, section):
+def get_first_film(soup, section):
+    tag_part = SectionsParts[section]
+    tag = None
 
-    tag_text = Subscene.__SEARCH_TYPE_LOOKUP[section]
-    headers = soup.find('div', 'search-result').find_all('h2')
+    headers = soup.find("div", "search-result").find_all("h2")
     for header in headers:
-      if tag_text in header.text:
-        tag = header
-        break
+        if tag_part in header.text:
+            tag = header
+            break
 
-    film_url = tag.findNext('ul').find('li').div.a.get('href')
-    film_url = Subscene.SITE_DOMAIN + film_url
+    if not tag:
+        return
 
-    film = Subscene.Film.from_url(film_url)
-    return film
+    url = SITE_DOMAIN + tag.findNext("ul").find("li").div.a.get("href")
+    return Film.from_url(url)
+
+def search(term, language="", limit_to=SearchTypes.Exact):
+    soup = soup_for("%s/subtitles/title?q=%s&l=%s" % (SITE_DOMAIN, term, language))
+
+    if "Subtitle search by" in str(soup):
+        rows = soup.find("table").tbody.find_all("tr")
+        subtitles = Subtitle.from_rows(rows)
+        return Film(term, subtitles=subtitles)
+
+    for junk, search_type in SearchTypes.__members__.items():
+        if section_exists(soup, search_type):
+            return get_first_film(soup, search_type)
+
+        if limit_to == search_type:
+            return
+

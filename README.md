@@ -14,13 +14,12 @@ Unofficial Python API for Subscene subtitle database.
 3. Fire it:
 ```
 $ python3
->>> from subscene import Subscene
->>> subscene = Subscene()
+>>> import subscene
 >>> film = subscene.search('Ex Machina')
 >>> subtitle = film.subtitles[42]
->>> subtitle.page
+>>> subtitle.url
 'http://subscene.com/subtitles/ex-machina/arabic/1141161'
->>> subtitle.get_zip_link()
+>>> subtitle.zipped_url
 'http://subscene.com/subtitle/download?mac=xR_n9E9cIdBzvp4ayAVHV8N7lDHHWIpZarWcT4l_j0SG4x_qSGFVHKG26EdRzUUL0'
 ```
 
