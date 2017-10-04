@@ -33,9 +33,12 @@ from bs4 import BeautifulSoup
 
 # constants
 HEADERS = {
-        "User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
-        }
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWeb"
+                  "Kit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safa"
+                  "ri/537.36"
+}
 SITE_DOMAIN = "https://subscene.com"
+
 
 # utils
 def soup_for(url):
@@ -44,14 +47,17 @@ def soup_for(url):
     html = urlopen(r).read().decode("utf-8")
     return BeautifulSoup(html, "html.parser")
 
-class AttrDict():
-    to_dict = lambda self: {k:getattr(self, k) for k in self._attrs}
 
+class AttrDict():
     def __init__(self, *attrs):
         self._attrs = attrs
 
         for attr in attrs:
             setattr(self, attr, "")
+
+    def to_dict(self):
+        return {k: getattr(self, k) for k in self._attrs}
+
 
 # models
 @enum.unique
@@ -61,15 +67,18 @@ class SearchTypes(enum.Enum):
     Popular = 3
     Close = 4
 
+
 SectionsParts = {
-        SearchTypes.Exact: "Exact",
-        SearchTypes.TvSerie: "TV-Series",
-        SearchTypes.Popular: "Popular",
-        SearchTypes.Close: "Close"
+    SearchTypes.Exact: "Exact",
+    SearchTypes.TvSerie: "TV-Series",
+    SearchTypes.Popular: "Popular",
+    SearchTypes.Close: "Close"
 }
 
+
 class Subtitle:
-    def __init__(self, title, url, language, owner_username, owner_url, description):
+    def __init__(self, title, url, language, owner_username, owner_url,
+                 description):
         self.title = title
         self.url = url
         self.language = language
@@ -94,22 +103,26 @@ class Subtitle:
 
     @classmethod
     def from_row(cls, row):
-        attrs = AttrDict("title", "url", "language", "owner_username", "owner_url", "description")
+        attrs = AttrDict("title", "url", "language", "owner_username",
+                         "owner_url", "description")
 
         with suppress(Exception):
-            attrs.title = row.find("td", "a1").a.find_all("span")[1].text.strip()
+            attrs.title = row.find("td", "a1").a.find_all("span")[1].text \
+                    .strip()
 
         with suppress(Exception):
             attrs.url = SITE_DOMAIN + row.find("td", "a1").a.get("href")
 
         with suppress(Exception):
-            attrs.language = row.find("td", "a1").a.find_all("span")[0].text.strip()
+            attrs.language = row.find("td", "a1").a.find_all("span")[0].text \
+                    .strip()
 
         with suppress(Exception):
             attrs.owner_username = row.find("td", "a5").a.text.strip()
 
         with suppress(Exception):
-            attrs.owner_page = SITE_DOMAIN + row.find("td", "a5").a.get("href").strip()
+            attrs.owner_page = SITE_DOMAIN + row.find("td", "a5").a \
+                    .get("href").strip()
 
         with suppress(Exception):
             attrs.description = row.find("td", "a6").div.text.strip()
@@ -122,11 +135,14 @@ class Subtitle:
             return self._zipped_url
 
         soup = soup_for(self.url)
-        self._zipped_url = SITE_DOMAIN + soup.find("div", "download").a.get("href")
+        self._zipped_url = SITE_DOMAIN + soup.find("div", "download").a \
+            .get("href")
         return self._zipped_url
 
+
 class Film:
-    def __init__(self, title, year=None, imdb=None, cover=None, subtitles=None):
+    def __init__(self, title, year=None, imdb=None, cover=None,
+                 subtitles=None):
         self.title = title
         self.year = year
         self.imdb = imdb
@@ -157,6 +173,7 @@ class Film:
 
         return cls(title, year, imdb, cover, subtitles)
 
+
 # functions
 def section_exists(soup, section):
     tag_part = SectionsParts[section]
@@ -171,6 +188,7 @@ def section_exists(soup, section):
             return True
 
     return False
+
 
 def get_first_film(soup, section):
     tag_part = SectionsParts[section]
@@ -188,8 +206,10 @@ def get_first_film(soup, section):
     url = SITE_DOMAIN + tag.findNext("ul").find("li").div.a.get("href")
     return Film.from_url(url)
 
+
 def search(term, language="", limit_to=SearchTypes.Exact):
-    soup = soup_for("%s/subtitles/title?q=%s&l=%s" % (SITE_DOMAIN, term, language))
+    soup = soup_for("%s/subtitles/title?q=%s&l=%s" % (SITE_DOMAIN, term,
+                                                      language))
 
     if "Subtitle search by" in str(soup):
         rows = soup.find("table").tbody.find_all("tr")
@@ -202,4 +222,3 @@ def search(term, language="", limit_to=SearchTypes.Exact):
 
         if limit_to == search_type:
             return
-
