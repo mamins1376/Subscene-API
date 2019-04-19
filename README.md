@@ -1,5 +1,9 @@
-# Subscene-API
+# Subscene-API (unmaintained)
 Unofficial Python API for Subscene subtitle database.
+
+_NOTE_: this project is no longer maintained - use [my fork of Subliminal](https://github.com/mamins1376/subliminal)
+ to with the added bonus of a nicely designed API. Use `develop` branch for subscene support until it gets merged
+with the upstream repository.
 
 ## Usage
 
